@@ -90,6 +90,21 @@ function plan_month_dates()
 	done
 }
 
+# Shows dates with active important entries in current month
+function plan_important_dates()
+{
+	local TIME_NOW=`date +%Y%m%d`
+	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
+
+	local LINE
+	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
+		local IS_IMP=$(is_important `echo $LINE | awk '{ print $2 }'`)
+		if [ -n "$IS_IMP" ]; then
+			echo $LINE | awk '{ print $1 }'
+		fi
+	done
+}
+
 # Shows lines that have date within current week
 function plan_week_entries()
 {
@@ -100,4 +115,14 @@ function plan_week_entries()
 	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
 		echo $LINE
 	done
+}
+
+# Shows whether this entry is important or not
+function is_important()
+{
+	echo $1 | grep ! > /dev/null
+
+	if [ 1 -ne $? ]; then
+		echo $1 | sed s/\!//
+	fi
 }
