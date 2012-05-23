@@ -17,8 +17,12 @@ if [ "x$PX_OFFSET" == "x" ]; then
 	PX_OFFSET=14
 fi
 
-if [ "x$HILITE_COLOR" == "x" ]; then
-	HILITE_COLOR="orange"
+if [ "x$CURRENT_DATE_COLOR" == "x" ]; then
+	CURRENT_DATE_COLOR="orange"
+fi
+
+if [ "x$IMPORTANT_COLOR" == "x" ]; then
+	IMPORTANT_COLOR="#FF4D00"
 fi
 
 if [ "x$CON_OUTPUT" == "x" ]; then
@@ -37,13 +41,14 @@ function print_entry()
 
 # Made this because printf behaves nasty with multibyte chars 
 	local ATEXT=`echo "$*" | iconv -f utf8 -t cp1251`
+	local TEMPLATE
 
 	if [ "$STAMP" != "$PREVSTAMP" ]; then
-		local TEMPLATE="%$OVERALL_WIDTH""s"
+		TEMPLATE="%$OVERALL_WIDTH""s"
 
 		if [ $CON_OUTPUT -ne 1 ]; then
 			if [ "$STAMP" == "$NOW" ]; then 
-				TEMPLATE="\${offset $PX_OFFSET}\${color $HILITE_COLOR}$TEMPLATE\${color}"
+				TEMPLATE="\${offset $PX_OFFSET}\${color $CURRENT_DATE_COLOR}$TEMPLATE\${color}"
 			else
 				TEMPLATE="\${offset $PX_OFFSET}$TEMPLATE"
 			fi
@@ -54,12 +59,20 @@ function print_entry()
 		PREVSTAMP=$STAMP
 	fi
 
-	if [ $CON_OUTPUT -ne 1 ]; then
-		echo -n "\${offset $PX_OFFSET}"
-	fi
+	TEMPLATE="%-$TXT_FIELD_WIDTH""s %$TAG_FIELD_WIDTH""s"
+	if [ 1 -ne $CON_OUTPUT ]; then
+		TEMPLATE="\${offset $PX_OFFSET}"$TEMPLATE
+		IS_IMP=$(is_important "$GROUP")
 
-# Restoring UTF-8 text	
-	printf "%-$TXT_FIELD_WIDTH""s %$TAG_FIELD_WIDTH""s\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
+		if [ -n "$IS_IMP" ]; then
+			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\${color}"
+			printf "$TEMPLATE\n" "$ATEXT" "$IS_IMP" | iconv -f cp1251 -t utf8
+		else
+			printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
+		fi
+	else
+		printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
+	fi
 }
 
 plan_week_entries | while read LINE; do
