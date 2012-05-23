@@ -109,7 +109,12 @@ function plan_important_dates()
 function plan_week_entries()
 {
 	local TIME_NOW=`date +%Y%m%d`
-	local TIME_END=`date -d "next Mon" +%Y%m%d`
+
+	if [ 1 -le $1 ]; then
+		local TIME_END=`date -d "+7 day" +%Y%m%d`
+	else
+		local TIME_END=`date -d "next Mon" +%Y%m%d`
+	fi
 
 	local LINE
 	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
