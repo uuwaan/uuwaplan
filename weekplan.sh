@@ -25,6 +25,10 @@ if [ "x$IMPORTANT_COLOR" == "x" ]; then
 	IMPORTANT_COLOR="#FF4D00"
 fi
 
+if [ "x$FLOW_MODE" == "x" ]; then
+	FLOW_MODE=0
+fi
+
 if [ "x$CON_OUTPUT" == "x" ]; then
 	CON_OUTPUT=0	
 fi
@@ -75,6 +79,6 @@ function print_entry()
 	fi
 }
 
-plan_week_entries | while read LINE; do
+plan_week_entries $FLOW_MODE | while read LINE; do
 	print_entry $LINE
 done
