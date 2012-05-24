@@ -1,81 +1,63 @@
 #!/bin/bash
-
 if [ "x$PLAN_DATABASE" == "x" ]; then
 	export PLAN_DATABASE=$HOME/.plans.txt
 fi
 
-# Adds single entry to plan database
-function plan_add_entry()
+# Filters lines by text pattern 
+function plan_filter_by_text()
 {
-	if [ $# -lt 3 ]; then
-		echo "plan_add_entry: not enough parameters."
-		echo "Usage: plan_edd_entry DATE CATEGORY TEXT"
-		exit 1;
-	fi
+	local FILTER=$1; shift
+	local RESULT=`echo "$*" | awk '/'"$FILTER"'/ { print $0 }'`
 
-	local TIMESTAMP=`date -d "$1" +%Y%m%d`; shift
-	if [ 0 -ne $? ]; then
-		echo "plan_add_entry: wrong date format"
-		exit 1;
+	if [ -n "$RESULT" ]; then
+		echo $RESULT
 	fi
-
-	local CATEGORY=$1; shift
-	echo "$TIMESTAMP" "$CATEGORY" "$*"  >> $PLAN_DATABASE 
 }
 
-# Adds number of repetive entries from specified date with specified offset 
-function plan_add_rep_entry()
+# Filters lines by date range 
+function plan_filter_by_date()
 {
-	if [ $# -lt 5 ]; then
-		echo "plan_add_entry: not enough parameters."
-		echo "Usage: plan_edd_rep_entry DATE OFFSET ITERATIONS CATEGORY TEXT"
-		exit 1;
+	local DATE_FROM=$1; shift
+	local DATE_TO=$1; shift
+
+	if (($1 >= $DATE_FROM && $1 <= $DATE_TO)); then
+		echo $* 
 	fi
+}
 
-	local CURDATE=`date -d "$1" +%Y%m%d`; shift
-	local	OFFSET=$1; shift
-	local ITERATIONS=$1; shift
-
-	for i in `seq 1 $ITERATIONS`; do
-		plan_add_entry $CURDATE $* 
-		CURDATE=`date -d "$CURDATE $OFFSET" +%Y%m%d`
+# Creates simple regexp from specified words
+function plan_pattern_from_words()
+{
+	local PATTERN=".*"
+	for i in `seq 1 $#`; do
+		PATTERN=$PATTERN$1".*"
+		shift
 	done
+
+	echo $PATTERN
+}
+
+# Shows whether this entry is important or not
+function is_important()
+{
+	echo $1 | grep ! > /dev/null
+
+	if (( 1 != $? )); then
+		echo $1 | sed s/\!//
+	fi
 }
 
 # Reads database line by line and invokes callback function
 function plan_read_lines()
 {
-	if [ $# -lt 1 ]; then
-		echo "plan_read_lines: not enough parameters."
-		echo "Usage: plan_read_lines CALLBACK"
-		exit 1;
-	fi
-	
 	local LINE
 	local RESULT
 	cat $PLAN_DATABASE | sort | while read LINE; do
 		RESULT=$($1 $LINE)
-		if [ x"$RESULT" != "x" ]; then
+		if [[ -n "$RESULT" ]]; then
 			echo $RESULT 	
 		fi
 	done
-}
-
-# Read the date from line and returns it if it is in specified range
-function plan_get_line_from_range()
-{
-	if [ $# -lt 3 ]; then
-		echo "plan_get_line_from_range: not enough parameters."
-		echo "Usage: plan_get_line_from_range DATE_FROM DATE_TO LINE"
-		exit 1;
-	fi
-
-	local DATE_FROM=$1; shift
-	local DATE_TO=$1; shift
-
-	if [ $1 -ge $DATE_FROM -a $1 -le $DATE_TO ]; then
-		echo "$*" 
-	fi
 }
 
 # Shows dates with active entries in current month
@@ -85,7 +67,7 @@ function plan_month_dates()
 	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
 
 	local LINE
-	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
+	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
 		echo $LINE | awk '{ print $1 }'
 	done
 }
@@ -97,9 +79,9 @@ function plan_important_dates()
 	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
 
 	local LINE
-	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
+	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
 		local IS_IMP=$(is_important `echo $LINE | awk '{ print $2 }'`)
-		if [ -n "$IS_IMP" ]; then
+		if [[ -n "$IS_IMP" ]]; then
 			echo $LINE | awk '{ print $1 }'
 		fi
 	done
@@ -110,24 +92,74 @@ function plan_week_entries()
 {
 	local TIME_NOW=`date +%Y%m%d`
 
-	if [ 1 -le $1 ]; then
+	if (( 1 <= $1 )); then
 		local TIME_END=`date -d "+7 day" +%Y%m%d`
 	else
 		local TIME_END=`date -d "next Mon" +%Y%m%d`
 	fi
 
 	local LINE
-	plan_read_lines "plan_get_line_from_range $TIME_NOW $TIME_END" | while read LINE; do
+	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
 		echo $LINE
 	done
 }
 
-# Shows whether this entry is important or not
-function is_important()
+# Adds single entry to plan database
+function plan_add_entry()
 {
-	echo $1 | grep ! > /dev/null
-
-	if [ 1 -ne $? ]; then
-		echo $1 | sed s/\!//
+	local TIMESTAMP=`date -d "$1" +%Y%m%d`; shift
+	if (( $? )); then
+		echo "plan_add_entry: wrong date format"
+		return
 	fi
+
+	local CATEGORY=$1; shift
+	echo "$TIMESTAMP" "$CATEGORY" "$*"  >> $PLAN_DATABASE 
+}
+
+# Adds number of repetive entries from specified date with specified offset 
+function plan_add_rep_entry()
+{
+	local CURDATE=`date -d "$1" +%Y%m%d`; shift
+	if (( $? )); then
+		echo "plan_add_rep_entry: wrong date format"
+		return
+	fi
+
+	local	OFFSET=$1; shift
+	local ITERATIONS=$1; shift
+
+	for i in `seq 1 $ITERATIONS`; do
+		plan_add_entry $CURDATE $* 
+		CURDATE=`date -d "$CURDATE $OFFSET" +%Y%m%d`
+	done
+}
+
+# Moves entry to new date
+function plan_move_entry()
+{
+	local NEW_DATE=`date -d "$1" +%Y%m%d`; shift
+	if (( $? )); then
+		echo "plan_move_entry: wrong date format"
+		return
+	fi
+
+	local PATTERN=`plan_pattern_from_words $*`
+	local DB_FILE=$PLAN_DATABASE.edit
+
+	if [[ -a $DB_FILE ]]; then
+		rm -f $DB_FILE
+	fi
+
+	local LINE
+	plan_read_lines "echo" | while read LINE; do
+		if [[ -n `plan_filter_by_text "$PATTERN" $LINE` ]]; then
+			local REST=`echo $LINE | cut -d\  -f2-`
+			echo $NEW_DATE $REST >> $DB_FILE
+			continue
+		fi
+		echo $LINE >> $DB_FILE
+	done
+
+	mv $DB_FILE $PLAN_DATABASE
 }

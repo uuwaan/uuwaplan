@@ -1,7 +1,7 @@
 #!/bin/bash
 source `dirname $0`/libplan.sh
 
-if [ 5 -gt $# ]; then
+if (( 5 > $# )); then
 	echo "Usage: rplan DATE OFFSET ITERATIONS CATEGORY TEXT"
 	exit 1;
 fi

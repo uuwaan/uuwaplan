@@ -8,4 +8,4 @@ fi
 
 DATE=$1; shift
 
-plan_add_entry "$DATE" $*
+plan_move_entry "$DATE" $*

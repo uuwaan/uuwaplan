@@ -1,7 +1,7 @@
 #!/bin/bash
 source `dirname $0`/libplan.sh
 
-if [ 3 -gt $# ]; then
+if (( 3 > $# )); then
 	echo "Usage: plan DATE CATEGORY TEXT"
 	exit 1;
 fi

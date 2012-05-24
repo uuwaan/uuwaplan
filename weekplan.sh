@@ -71,12 +71,11 @@ function print_entry()
 		if [ -n "$IS_IMP" ]; then
 			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\${color}"
 			printf "$TEMPLATE\n" "$ATEXT" "$IS_IMP" | iconv -f cp1251 -t utf8
-		else
-			printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
+			return
 		fi
-	else
-		printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
 	fi
+
+	printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
 }
 
 plan_week_entries $FLOW_MODE | while read LINE; do
