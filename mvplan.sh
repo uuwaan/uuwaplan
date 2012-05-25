@@ -2,7 +2,7 @@
 source `dirname $0`/libplan.sh
 
 if (( 2 > $# )); then
-	echo "Usage: mvplan NEW_DATE [CATEGORY] WORDS"
+	echo "Usage: mvplan NEW_DATE [OLD_DATE] [CATEGORY] WORDS"
 	exit 1;
 fi
 

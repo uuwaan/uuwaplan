@@ -66,7 +66,7 @@ function print_entry()
 	TEMPLATE="%-$TXT_FIELD_WIDTH""s %$TAG_FIELD_WIDTH""s"
 	if [ 1 -ne $CON_OUTPUT ]; then
 		TEMPLATE="\${offset $PX_OFFSET}"$TEMPLATE
-		IS_IMP=$(is_important "$GROUP")
+		IS_IMP=$(plan_is_important "$GROUP")
 
 		if [ -n "$IS_IMP" ]; then
 			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\${color}"

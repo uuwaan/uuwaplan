@@ -1,6 +1,10 @@
 #!/bin/bash
-if [ "x$PLAN_DATABASE" == "x" ]; then
-	export PLAN_DATABASE=$HOME/.plans.txt
+if [[ x$PLAN_DATABASE == "x" ]]; then
+	PLAN_DATABASE=$HOME/.plans.txt
+fi
+
+if [[ x$PLAN_LAST_EDIT != "x" ]]; then
+	PLAN_LAST_EDIT=""
 fi
 
 # Filters lines by text pattern 
@@ -25,11 +29,28 @@ function plan_filter_by_date()
 	fi
 }
 
+# Invokes external editor for entry
+function plan_edit_externally()
+{
+	local SALT=`date +%T%N`
+	local SUFFIX=`echo $* $SALT | sha1sum | awk '{print $1}'`
+	local FILE=$PLAN_DATABASE.$SUFFIX
+
+	echo $* > $FILE
+	if [[ x$EDITOR != "x" ]]; then
+		$EDITOR $FILE 
+		if (( 0 == $? )); then
+			PLAN_LAST_EDIT=`cat $FILE | head -1`
+		fi
+	fi
+	rm -f $FILE
+}
+
 # Creates simple regexp from specified arguments 
 function plan_pattern_from_args()
 {
 # Try to interpret first argument as timestamp to narrow search
-	local TRY_DATE=`is_date "$1"`
+	local TRY_DATE=`plan_is_date "$1"`
 	if [[ -n "$TRY_DATE" ]]; then
 		local PATTERN=$TRY_DATE".*"
 		shift
@@ -46,7 +67,7 @@ function plan_pattern_from_args()
 }
 
 # Shows whether this entry is important or not
-function is_important()
+function plan_is_important()
 {
 	echo $1 | grep ! > /dev/null
 
@@ -56,7 +77,7 @@ function is_important()
 }
 
 # Returns DB timestamp if input can be interpreted as date
-function is_date()
+function plan_is_date()
 {
 	echo "$1" | grep -e '[a-z0-9[:space:]+-]\+' >/dev/null
 	if (( 1 == $? )); then return; fi
@@ -100,7 +121,7 @@ function plan_important_dates()
 
 	local LINE
 	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
-		local IS_IMP=$(is_important `echo $LINE | awk '{ print $2 }'`)
+		local IS_IMP=$(plan_is_important `echo $LINE | awk '{ print $2 }'`)
 		if [[ -n "$IS_IMP" ]]; then
 			echo $LINE | awk '{ print $1 }'
 		fi
@@ -127,39 +148,77 @@ function plan_week_entries()
 # Adds single entry to plan database
 function plan_add_entry()
 {
-	local TIMESTAMP=`is_date "$1"`; shift
+	local IS_EXT_EDITOR=1
+	if [[ "-e" == "$1" ]]; then
+		IS_EXT_EDITOR=0
+		shift
+	fi
+
+	local TIMESTAMP=`plan_is_date "$1"`; shift
 	if [[ -z "$TIMESTAMP" ]]; then
 		echo "plan_add_entry: wrong date format"
 		return
 	fi
 
 	local CATEGORY=$1; shift
-	echo "$TIMESTAMP" "$CATEGORY" "$*"  >> $PLAN_DATABASE 
+	if [[ x$CATEGORY == "x" ]]; then
+		echo "plan_add_entry: category was not specified"
+		return
+	fi
+
+	local RESULT
+	if (( 0 == $IS_EXT_EDITOR )); then
+		plan_edit_externally $*
+		RESULT=$PLAN_LAST_EDIT
+	else
+		RESULT=$*
+	fi
+	
+	if [[ -z "$RESULT" ]]; then
+		echo "plan_add_entry: nothing to add"
+		return
+	fi
+
+	echo $TIMESTAMP $CATEGORY $RESULT >> $PLAN_DATABASE 
 }
 
 # Adds number of repetive entries from specified date with specified offset 
 function plan_add_rep_entry()
 {
-	local CURDATE=`date -d "$1" +%Y%m%d`; shift
-	if (( $? )); then
+	local IS_EXT_EDITOR=""
+	if [[ "-e" == "$1" ]]; then
+		IS_EXT_EDITOR="-e"
+		shift
+	fi
+
+	local TIMESTAMP=`plan_is_date "$1"`; shift
+	if [[ -z "$TIMESTAMP" ]]; then
 		echo "plan_add_rep_entry: wrong date format"
 		return
 	fi
 
 	local	OFFSET=$1; shift
 	local ITERATIONS=$1; shift
+	local MESSAGE=$*
 
 	for i in `seq 1 $ITERATIONS`; do
-		plan_add_entry $CURDATE $* 
-		CURDATE=`date -d "$CURDATE $OFFSET" +%Y%m%d`
+		plan_add_entry $IS_EXT_EDITOR $TIMESTAMP $MESSAGE 
+		TIMESTAMP=`date -d "$TIMESTAMP $OFFSET" +%Y%m%d`
+
+# Check if we're using external editor and save it's output
+# to avoid repeating input each time
+		if [[ -n "$IS_EXT_EDITOR" && -n "$PLAN_LAST_EDIT" ]]; then
+			MESSAGE=$PLAN_LAST_EDIT
+			IS_EXT_EDITOR=""
+		fi
 	done
 }
 
 # Moves entry to new date
 function plan_move_entry()
 {
-	local NEW_DATE=`date -d "$1" +%Y%m%d`; shift
-	if (( $? )); then
+	local NEW_DATE=`plan_is_date "$1"`; shift
+	if [[ -z "$NEW_DATE" ]]; then
 		echo "plan_move_entry: wrong date format"
 		return
 	fi
