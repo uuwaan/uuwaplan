@@ -1,9 +1,9 @@
 #!/bin/bash
-if [[ x$PLAN_DATABASE == "x" ]]; then
-	PLAN_DATABASE=$HOME/.plans.txt
+if [[ -z `echo $PLAN_DATABASE` ]]; then
+	PLAN_DATABASE="$HOME/.plans.txt"
 fi
 
-if [[ x$PLAN_LAST_EDIT != "x" ]]; then
+if [[ -z `echo $PLAN_LAST_EDIT` ]]; then
 	PLAN_LAST_EDIT=""
 fi
 
@@ -37,8 +37,9 @@ function plan_edit_externally()
 	local FILE=$PLAN_DATABASE.$SUFFIX
 
 	echo $* > $FILE
-	if [[ x$EDITOR != "x" ]]; then
-		$EDITOR $FILE 
+	if [[ -n `echo $EDITOR` ]]; then
+# Workaround, as editor wasn't opened with direct connection to terminal
+		$EDITOR $FILE < /dev/tty
 		if (( 0 == $? )); then
 			PLAN_LAST_EDIT=`cat $FILE | head -1`
 		fi
@@ -93,10 +94,23 @@ function plan_read_lines()
 {
 	local LINE
 	local RESULT
-	cat $PLAN_DATABASE | sort | while read LINE; do
+	cat "$PLAN_DATABASE" | sort | while read LINE; do
 		RESULT=$($1 $LINE)
 		if [[ -n "$RESULT" ]]; then
 			echo $RESULT 	
+		fi
+	done
+}
+
+# Reads database line by line, copies lines that didn't match the pattern and echoes others. 
+function plan_hook_lines()
+{
+	local LINE
+	plan_read_lines "echo" | while read LINE; do
+		if [[ -n `plan_filter_by_text "$2" $LINE` ]]; then
+			echo $LINE
+		else
+			echo $LINE >> $1
 		fi
 	done
 }
@@ -154,6 +168,13 @@ function plan_add_entry()
 		shift
 	fi
 
+	local ALT_DB=""
+	if [[ "-db" == "$1" ]]; then
+		ALT_DB=$2
+		shift
+		shift
+	fi
+
 	local TIMESTAMP=`plan_is_date "$1"`; shift
 	if [[ -z "$TIMESTAMP" ]]; then
 		echo "plan_add_entry: wrong date format"
@@ -161,25 +182,29 @@ function plan_add_entry()
 	fi
 
 	local CATEGORY=$1; shift
-	if [[ x$CATEGORY == "x" ]]; then
+	if [[ -z `echo $CATEGORY` ]]; then
 		echo "plan_add_entry: category was not specified"
 		return
 	fi
 
 	local RESULT
 	if (( 0 == $IS_EXT_EDITOR )); then
-		plan_edit_externally $*
+		plan_edit_externally $CATEGORY $*
 		RESULT=$PLAN_LAST_EDIT
 	else
-		RESULT=$*
+		RESULT=$CATEGORY $*
 	fi
 	
-	if [[ -z "$RESULT" ]]; then
+	if [[ -z `echo $RESULT` || `echo $RESULT` == "$CATEGORY" ]]; then
 		echo "plan_add_entry: nothing to add"
 		return
 	fi
 
-	echo $TIMESTAMP $CATEGORY $RESULT >> $PLAN_DATABASE 
+	if [[ -n "$ALT_DB" ]]; then
+		echo $TIMESTAMP $RESULT >> "$ALT_DB" 
+	else
+		echo $TIMESTAMP $RESULT >> "$PLAN_DATABASE" 
+	fi
 }
 
 # Adds number of repetive entries from specified date with specified offset 
@@ -224,21 +249,39 @@ function plan_move_entry()
 	fi
 
 	local PATTERN=`plan_pattern_from_args $*`
-	local DB_FILE=$PLAN_DATABASE.edit
+	local DB_FILE="$PLAN_DATABASE.edit"
 
-	if [[ -a $DB_FILE ]]; then
-		rm -f $DB_FILE
+	if [[ -a "$DB_FILE" ]]; then
+		rm -f "$DB_FILE"
 	fi
 
 	local LINE
-	plan_read_lines "echo" | while read LINE; do
-		if [[ -n `plan_filter_by_text "$PATTERN" $LINE` ]]; then
-			local REST=`echo $LINE | cut -d\  -f2-`
-			echo $NEW_DATE $REST >> $DB_FILE
-			continue
-		fi
-		echo $LINE >> $DB_FILE
+	plan_hook_lines "$DB_FILE" "$PATTERN" | while read LINE; do
+		local REST=`echo $LINE | cut -d\  -f2-`
+		echo $NEW_DATE $REST >> "$DB_FILE"
 	done
 
-	mv $DB_FILE $PLAN_DATABASE
+	mv "$DB_FILE" "$PLAN_DATABASE"
+}
+
+# Edits entry with external editor 
+function plan_edit_entry()
+{
+	local PATTERN=`plan_pattern_from_args $*`
+	local DB_FILE="$PLAN_DATABASE.edit"
+
+	if [[ -a "$DB_FILE" ]]; then
+		rm -f "$DB_FILE"
+	fi
+
+	local LINE
+	plan_hook_lines "$DB_FILE" "$PATTERN" | while read LINE; do
+		local REST=`echo $LINE | cut -d\  -f2-`
+		local TIME=`echo $LINE | awk '{ print $1 }'`
+
+# Using secret ability of plan_add_entry to add line to new DB instead of main
+		plan_add_entry -e -db "$DB_FILE" $TIME $REST
+	done
+
+	mv "$DB_FILE" "$PLAN_DATABASE"
 }

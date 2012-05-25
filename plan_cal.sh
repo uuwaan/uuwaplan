@@ -1,27 +1,27 @@
 #!/bin/bash
 source `dirname $0`/libplan.sh
 
-if [ -f $HOME/.plancalrc ]; then
+if [[ -a "$HOME/.plancalrc" ]]; then
 	source $HOME/.plancalrc
 fi
 
-if [ "x$PX_OFFSET" == "x" ]; then
+if [[ -z `echo $PX_OFFSET` ]]; then
 	PX_OFFSET=14
 fi
 
-if [ "x$CURRENT_DATE_COLOR" == "x" ]; then
+if [[ -z `echo $CURRENT_DATE_COLOR` ]]; then
 	CURRENT_DATE_COLOR="orange"
 fi
 
-if [ "x$IMPORTANT_COLOR" == "x" ]; then
+if [[ -z `echo $IMPORTANT_COLOR` ]]; then
 	IMPORTANT_COLOR="#FF4D00"
 fi
 
-if [ "x$ONLY_IMPORTANT" == "x" ]; then
+if [[ -z `echo $ONLY_IMPORTANT` ]]; then
 	ONLY_IMPORTANT=0	
 fi
 
-if [ 1 -gt $ONLY_IMPORTANT ]; then
+if (( 0 == $ONLY_IMPORTANT )); then
 	DATES=`plan_month_dates`
 else
 	DATES=`plan_important_dates`
