@@ -25,10 +25,18 @@ function plan_filter_by_date()
 	fi
 }
 
-# Creates simple regexp from specified words
-function plan_pattern_from_words()
+# Creates simple regexp from specified arguments 
+function plan_pattern_from_args()
 {
-	local PATTERN=".*"
+# Try to interpret first argument as timestamp to narrow search
+	local TRY_DATE=`is_date "$1"`
+	if [[ -n "$TRY_DATE" ]]; then
+		local PATTERN=$TRY_DATE".*"
+		shift
+	else
+		local PATTERN=".*"
+	fi
+
 	for i in `seq 1 $#`; do
 		PATTERN=$PATTERN$1".*"
 		shift
@@ -42,9 +50,21 @@ function is_important()
 {
 	echo $1 | grep ! > /dev/null
 
-	if (( 1 != $? )); then
+	if (( 0 == $? )); then
 		echo $1 | sed s/\!//
 	fi
+}
+
+# Returns DB timestamp if input can be interpreted as date
+function is_date()
+{
+	echo "$1" | grep -e '[a-z0-9[:space:]+-]\+' >/dev/null
+	if (( 1 == $? )); then return; fi
+
+	local TRY_DATE=`date +%Y%m%d -d "$1" 2>/dev/null`
+	if (( 1 == $? )); then return; fi
+
+	echo $TRY_DATE
 }
 
 # Reads database line by line and invokes callback function
@@ -92,7 +112,7 @@ function plan_week_entries()
 {
 	local TIME_NOW=`date +%Y%m%d`
 
-	if (( 1 <= $1 )); then
+	if (( 0 != $1 )); then
 		local TIME_END=`date -d "+7 day" +%Y%m%d`
 	else
 		local TIME_END=`date -d "next Mon" +%Y%m%d`
@@ -107,8 +127,8 @@ function plan_week_entries()
 # Adds single entry to plan database
 function plan_add_entry()
 {
-	local TIMESTAMP=`date -d "$1" +%Y%m%d`; shift
-	if (( $? )); then
+	local TIMESTAMP=`is_date "$1"`; shift
+	if [[ -z "$TIMESTAMP" ]]; then
 		echo "plan_add_entry: wrong date format"
 		return
 	fi
@@ -144,7 +164,7 @@ function plan_move_entry()
 		return
 	fi
 
-	local PATTERN=`plan_pattern_from_words $*`
+	local PATTERN=`plan_pattern_from_args $*`
 	local DB_FILE=$PLAN_DATABASE.edit
 
 	if [[ -a $DB_FILE ]]; then
