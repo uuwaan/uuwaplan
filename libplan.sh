@@ -125,10 +125,6 @@ function plan_month_dates()
 
 	if [[ -n `plan_is_date "$1"` ]]; then
 		local MONTH=`date -d "$1" +%m`
-		if (( 1 == $? )); then
-			echo "plan_month_dates: wrong date format"
-			return
-		fi
 
 		TIME_NOW=`date -d "$MONTH/01" +%Y%m%d`
 		TIME_END=`date -d "$TIME_NOW -1 day +1 month" +%Y%m%d`
