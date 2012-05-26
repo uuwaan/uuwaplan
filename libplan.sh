@@ -43,6 +43,8 @@ function plan_edit_externally()
 		if (( 0 == $? )); then
 			PLAN_LAST_EDIT=`cat $FILE | head -1`
 		fi
+	else
+		echo 'plan_edit_externally: no external editor found in EDITOR variable. Do smth like "export EDITOR=mcedit"'
 	fi
 	rm -f $FILE
 }
@@ -192,7 +194,8 @@ function plan_add_entry()
 		plan_edit_externally $CATEGORY $*
 		RESULT=$PLAN_LAST_EDIT
 	else
-		RESULT=$CATEGORY $*
+# Without echo this line doesn't behave good with russian text
+		RESULT=`echo $CATEGORY $*`
 	fi
 	
 	if [[ -z `echo $RESULT` || `echo $RESULT` == "$CATEGORY" ]]; then

@@ -47,6 +47,7 @@ function print_entry()
 
 # Made this because printf behaves nasty with multibyte chars 
 	local ATEXT=`echo "$*" | iconv -f utf8 -t cp1251`
+	local AGROUP=`echo "$GROUP" | iconv -f utf8 -t cp1251`
 	local TEMPLATE
 
 	if (( $STAMP != $PREVSTAMP )); then
@@ -73,7 +74,7 @@ function print_entry()
 	TEMPLATE="%-$TXT_FIELD_WIDTH""s %$TAG_FIELD_WIDTH""s"
 	if (( 0 == $CON_OUTPUT )); then
 		TEMPLATE="\${offset $PX_OFFSET}"$TEMPLATE
-		IS_IMP=$(plan_is_important "$GROUP")
+		IS_IMP=$(plan_is_important "$AGROUP")
 
 		if [[ -n "$IS_IMP" ]]; then
 			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\${color}"
@@ -82,7 +83,7 @@ function print_entry()
 		fi
 	fi
 
-	printf "$TEMPLATE\n" "$ATEXT" "$GROUP" | iconv -f cp1251 -t utf8
+	printf "$TEMPLATE\n" "$ATEXT" "$AGROUP" | iconv -f cp1251 -t utf8
 }
 
 plan_week_entries $FLOW_MODE | while read LINE; do
