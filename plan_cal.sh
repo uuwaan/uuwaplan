@@ -5,10 +5,6 @@ if [[ -a "$HOME/.plancalrc" ]]; then
 	source $HOME/.plancalrc
 fi
 
-if [[ -z `echo $PX_OFFSET` ]]; then
-	PX_OFFSET=14
-fi
-
 if [[ -z `echo $CURRENT_DATE_COLOR` ]]; then
 	CURRENT_DATE_COLOR="orange"
 fi
@@ -50,5 +46,5 @@ for i in {1..7}; do
 				PRNT=`colorize_string "$PRNT" "$SD" $IMPORTANT_COLOR`
 			fi
 	done
-	echo "\${alignr $PX_OFFSET}$PRNT"
+	echo "$PRNT"
 done

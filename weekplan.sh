@@ -13,10 +13,6 @@ if [[ -z `echo $TAG_FIELD_WIDTH` ]]; then
 	TAG_FIELD_WIDTH=6
 fi
 
-if [[ -z `echo $PX_OFFSET` ]]; then
-	PX_OFFSET=14
-fi
-
 if [[ -z `echo $CURRENT_DATE_COLOR` ]]; then
 	CURRENT_DATE_COLOR="orange"
 fi
@@ -53,12 +49,8 @@ function print_entry()
 	if (( $STAMP != $PREVSTAMP )); then
 		TEMPLATE="%$OVERALL_WIDTH""s"
 
-		if (( 0 == $CON_OUTPUT )); then
-			if (( $STAMP == $NOW )); then 
-				TEMPLATE="\${offset $PX_OFFSET}\${color $CURRENT_DATE_COLOR}$TEMPLATE\$color"
-			else
-				TEMPLATE="\${offset $PX_OFFSET}$TEMPLATE"
-			fi
+		if (( 0 == $CON_OUTPUT && $STAMP == $NOW )); then
+			TEMPLATE="\${color $CURRENT_DATE_COLOR}$TEMPLATE\$color"
 		fi
 
 		if (( $IS_FIRST )); then
@@ -73,11 +65,10 @@ function print_entry()
 
 	TEMPLATE="%-$TXT_FIELD_WIDTH""s %$TAG_FIELD_WIDTH""s"
 	if (( 0 == $CON_OUTPUT )); then
-		TEMPLATE="\${offset $PX_OFFSET}"$TEMPLATE
 		IS_IMP=$(plan_is_important "$AGROUP")
 
 		if [[ -n "$IS_IMP" ]]; then
-			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\${color}"
+			TEMPLATE="\${color $IMPORTANT_COLOR}"$TEMPLATE"\$color"
 			printf "$TEMPLATE\n" "$ATEXT" "$IS_IMP" | iconv -f cp1251 -t utf8
 			return
 		fi
