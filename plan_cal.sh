@@ -37,7 +37,7 @@ function nth_line()
 
 function colorize_string()
 {
-	echo "$1" | sed s/"\(^\|[^0-9]\)$2"'\b'/'\1${color '$3'}'"$2"'${color}'/
+	echo "$1" | sed s/"\(^\|[^0-9]\)$2"'\b'/'\1${color '$3'}'"$2"'$color'/
 }
 
 for i in {1..7}; do

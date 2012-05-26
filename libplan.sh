@@ -125,9 +125,8 @@ function plan_month_dates()
 
 	local LINE
 	local PREVSTAMP=-1
-	local STAMP
 	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
-		STAMP=`echo $LINE | awk '{ print $1 }'`
+		local STAMP=`echo $LINE | awk '{ print $1 }'`
 		if [[ "$STAMP" != "$PREVSTAMP" ]]; then
 			echo $STAMP
 			PREVSTAMP=$STAMP

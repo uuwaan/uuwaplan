@@ -55,7 +55,7 @@ function print_entry()
 
 		if (( 0 == $CON_OUTPUT )); then
 			if (( $STAMP == $NOW )); then 
-				TEMPLATE="\${offset $PX_OFFSET}\${color $CURRENT_DATE_COLOR}$TEMPLATE\${color}"
+				TEMPLATE="\${offset $PX_OFFSET}\${color $CURRENT_DATE_COLOR}$TEMPLATE\$color"
 			else
 				TEMPLATE="\${offset $PX_OFFSET}$TEMPLATE"
 			fi
