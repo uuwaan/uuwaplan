@@ -124,8 +124,14 @@ function plan_month_dates()
 	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
 
 	local LINE
+	local PREVSTAMP=-1
+	local STAMP
 	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
-		echo $LINE | awk '{ print $1 }'
+		STAMP=`echo $LINE | awk '{ print $1 }'`
+		if [[ "$STAMP" != "$PREVSTAMP" ]]; then
+			echo $STAMP
+			PREVSTAMP=$STAMP
+		fi
 	done
 }
 
@@ -136,10 +142,14 @@ function plan_important_dates()
 	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
 
 	local LINE
+	local PREVSTAMP=-1
 	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
 		local IS_IMP=$(plan_is_important `echo $LINE | awk '{ print $2 }'`)
-		if [[ -n "$IS_IMP" ]]; then
-			echo $LINE | awk '{ print $1 }'
+		local STAMP=`echo $LINE | awk '{ print $1 }'`
+
+		if [[ -n "$IS_IMP" && "$STAMP" != "$PREVSTAMP" ]]; then
+			echo $STAMP
+			PREVSTAMP=$STAMP
 		fi
 	done
 }

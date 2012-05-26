@@ -46,7 +46,7 @@ for i in {1..7}; do
 	PRNT=`colorize_string "$PADD" "$DJS" $CURRENT_DATE_COLOR`
 	for D in $DATES; do
 			SD=`date -d "$D" +%_d`
-			if [ "$SD" != "$DJS" ]; then
+			if [[ "$SD" != "$DJS" ]]; then
 				PRNT=`colorize_string "$PRNT" "$SD" $IMPORTANT_COLOR`
 			fi
 	done
