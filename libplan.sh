@@ -120,33 +120,34 @@ function plan_hook_lines()
 # Shows dates with active entries in current month
 function plan_month_dates()
 {
-	local TIME_NOW=`date +%Y%m%d`
-	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
+	local TIME_NOW
+	local TIME_END
 
-	local LINE
-	local PREVSTAMP=-1
-	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
-		local STAMP=`echo $LINE | awk '{ print $1 }'`
-		if [[ "$STAMP" != "$PREVSTAMP" ]]; then
-			echo $STAMP
-			PREVSTAMP=$STAMP
+	if [[ -n `plan_is_date "$1"` ]]; then
+		local MONTH=`date -d "$1" +%m`
+		if (( 1 == $? )); then
+			echo "plan_month_dates: wrong date format"
+			return
 		fi
-	done
-}
 
-# Shows dates with active important entries in current month
-function plan_important_dates()
-{
-	local TIME_NOW=`date +%Y%m%d`
-	local TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
+		TIME_NOW=`date -d "$MONTH/01" +%Y%m%d`
+		TIME_END=`date -d "$TIME_NOW -1 day +1 month" +%Y%m%d`
+	else
+		TIME_NOW=`date +%Y%m%d`
+		TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
+	fi
 
 	local LINE
 	local PREVSTAMP=-1
 	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
-		local IS_IMP=$(plan_is_important `echo $LINE | awk '{ print $2 }'`)
 		local STAMP=`echo $LINE | awk '{ print $1 }'`
+		local IS_IMP=$(plan_is_important `echo $LINE | awk '{ print $2 }'`)
 
-		if [[ -n "$IS_IMP" && "$STAMP" != "$PREVSTAMP" ]]; then
+		if [[ "1" == "$2" && -z "$IS_IMP" ]]; then
+			continue
+		fi
+
+		if [[ "$STAMP" != "$PREVSTAMP" ]]; then
 			echo $STAMP
 			PREVSTAMP=$STAMP
 		fi

@@ -17,11 +17,7 @@ if [[ -z `echo $ONLY_IMPORTANT` ]]; then
 	ONLY_IMPORTANT=0	
 fi
 
-if (( 0 == $ONLY_IMPORTANT )); then
-	DATES=`plan_month_dates`
-else
-	DATES=`plan_important_dates`
-fi
+DATES=`plan_month_dates now $ONLY_IMPORTANT`
 
 DJS=`date +%_d`
 CAL=`cal -m`
