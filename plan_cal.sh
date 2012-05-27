@@ -65,7 +65,7 @@ function cal_for_month()
 		DJS=""
 	fi
 
-	local CAL=`cal -m $CALDATE`
+	local CAL=`cal $CALDATE`
 	local i
 	for i in {1..8}; do
 		LINE=`nth_line "$CAL" $i`
