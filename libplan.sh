@@ -3,10 +3,6 @@ if [[ -z `echo $PLAN_DATABASE` ]]; then
 	PLAN_DATABASE="$HOME/.plans.txt"
 fi
 
-if [[ -z `echo $PLAN_LAST_EDIT` ]]; then
-	PLAN_LAST_EDIT=""
-fi
-
 # Filters lines by text pattern 
 function plan_filter_by_text()
 {
@@ -37,6 +33,7 @@ function plan_edit_externally()
 	local FILE=$PLAN_DATABASE.$SUFFIX
 
 	echo $* > $FILE
+	PLAN_LAST_EDIT=""
 	if [[ -n `echo $EDITOR` ]]; then
 # Workaround, as editor wasn't opened with direct connection to terminal
 		$EDITOR $FILE < /dev/tty
@@ -117,21 +114,19 @@ function plan_hook_lines()
 	done
 }
 
-# Shows dates with active entries in current month
+# Shows dates with active entries in specified month
 function plan_month_dates()
 {
-	local TIME_NOW
-	local TIME_END
+	local MONTH
 
 	if [[ -n `plan_is_date "$1"` ]]; then
-		local MONTH=`date -d "$1" +%m`
-
-		TIME_NOW=`date -d "$MONTH/01" +%Y%m%d`
-		TIME_END=`date -d "$TIME_NOW -1 day +1 month" +%Y%m%d`
+		MONTH=`date -d "$1" +%m`
 	else
-		TIME_NOW=`date +%Y%m%d`
-		TIME_END=`date -d "-$(date +%d) days +1 month" +%Y%m%d`
+		MONTH=`date +%m`
 	fi
+
+	local TIME_NOW=`date -d "$MONTH/01" +%Y%m%d`
+	local TIME_END=`date -d "$TIME_NOW -1 day +1 month" +%Y%m%d`
 
 	local LINE
 	local PREVSTAMP=-1
@@ -150,20 +145,29 @@ function plan_month_dates()
 	done
 }
 
-# Shows lines that have date within current week
-function plan_week_entries()
+# Shows lines that have date within specified range 
+function plan_date_entries()
 {
-	local TIME_NOW=`date +%Y%m%d`
-
-	if (( 0 != $1 )); then
-		local TIME_END=`date -d "+7 day" +%Y%m%d`
-	else
-		local TIME_END=`date -d "next Mon" +%Y%m%d`
+	local TIMESTART=`plan_is_date "$1"`; shift
+	if [[ -z "$TIMESTART" ]]; then
+		echo "plan_date_entries: wrong date format for start date"
+		return
 	fi
 
+	local TIMEND=`plan_is_date "$1"`; shift
+	if [[ -z "$TIMEND" ]]; then
+		echo "plan_date_entries: wrong date format for end date"
+		return
+	fi
+
+	local LIMIT=$1; shift
+
 	local LINE
-	plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
+	local i=0
+	plan_read_lines "plan_filter_by_date $TIMESTART $TIMEND" | while read LINE; do
 		echo $LINE
+		let i+=1
+		if (( $LIMIT <= $i )); then break; fi
 	done
 }
 
@@ -287,8 +291,6 @@ function plan_edit_entry()
 	plan_hook_lines "$DB_FILE" "$PATTERN" | while read LINE; do
 		local REST=`echo $LINE | cut -d\  -f2-`
 		local TIME=`echo $LINE | awk '{ print $1 }'`
-
-# Using secret ability of plan_add_entry to add line to new DB instead of main
 		plan_add_entry -e -db "$DB_FILE" $TIME $REST
 	done
 

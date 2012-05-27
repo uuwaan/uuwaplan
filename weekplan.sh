@@ -21,10 +21,6 @@ if [[ -z `echo $IMPORTANT_COLOR` ]]; then
 	IMPORTANT_COLOR="#FF4D00"
 fi
 
-if [[ -z `echo $FLOW_MODE` ]]; then
-	FLOW_MODE=0
-fi
-
 if [[ -z `echo $CON_OUTPUT` ]]; then
 	CON_OUTPUT=0	
 fi
@@ -77,6 +73,6 @@ function print_entry()
 	printf "$TEMPLATE\n" "$ATEXT" "$AGROUP" | iconv -f cp1251 -t utf8
 }
 
-plan_week_entries $FLOW_MODE | while read LINE; do
+plan_date_entries "$1" "$2" "$3" | while read LINE; do
 	print_entry $LINE
 done
