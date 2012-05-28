@@ -88,6 +88,11 @@ function cal_for_month()
 	done
 }
 
+START_DATE=now
+if [[ -n "$1" ]]; then
+	START_DATE=`plan_parse_date "$1"`
+fi
+
 COUNT=0
 if [[ -n "$2" ]]; then
 	let COUNT=$2-1
@@ -96,7 +101,7 @@ fi
 RESULT=""
 
 for i in `seq 0 $COUNT`; do
-	CUR_CAL=`cal_for_month "$1 +$i month"`
+	CUR_CAL=`cal_for_month "$START_DATE +$i month"`
 	RESULT=`concat_cals "$RESULT" "$CUR_CAL"`
 done
 

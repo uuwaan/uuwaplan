@@ -1,8 +1,8 @@
 #!/bin/bash
 source `dirname $0`/libplan.sh
 
-if [[ -a "$HOME/.weekplanrc" ]]; then
-	source "$HOME/.weekplanrc"
+if [[ -a "$HOME/.listplanrc" ]]; then
+	source "$HOME/.listplanrc"
 fi
 
 if [[ -z `echo $OVERALL_WIDTH` ]]; then
@@ -28,7 +28,7 @@ fi
 	
 let TXT_FIELD_WIDTH=$OVERALL_WIDTH-$TAG_FIELD_WIDTH-1
 
-NOW=`date +%Y%m%d`
+NOW=`plan_parse_date now`
 PREVSTAMP=-1
 IS_FIRST=1
 
@@ -73,6 +73,30 @@ function print_entry()
 	printf "$TEMPLATE\n" "$ATEXT" "$AGROUP" | iconv -f cp1251 -t utf8
 }
 
-plan_date_entries "$1" "$2" "$3" | while read LINE; do
+if [[ -n "$1" ]]; then
+	START_DATE=`plan_parse_date "$1"`
+	if [[ -z "$START_DATE" ]]; then
+		START_DATE=now
+	fi
+else
+	START_DATE=now
+fi
+
+if [[ -n "$2" ]]; then
+	STOP_DATE=`plan_parse_date "$2"`
+	if [[ -z "$STOP_DATE" ]]; then
+		STOP_DATE="$START_DATE +7 day"
+	fi
+else
+	STOP_DATE="$START_DATE +7 day"
+fi
+
+if [[ -n "$3" ]]; then
+	COUNT=$3
+else
+	COUNT=100500
+fi
+
+plan_date_entries "$START_DATE" "$STOP_DATE" "$COUNT" | while read LINE; do
 	print_entry $LINE
 done

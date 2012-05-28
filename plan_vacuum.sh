@@ -9,7 +9,7 @@ if [[ -a "$DB_FILE" ]]; then
 	rm -f "$DB_FILE"
 fi
 
-plan_read_lines "plan_filter_by_date $TIME_NOW $TIME_END" | while read LINE; do
+plan_read_lines | plan_filter_by_date $TIME_NOW $TIME_END | while read LINE; do
 	echo $LINE >> "$DB_FILE"
 done
 
