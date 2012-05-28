@@ -102,7 +102,6 @@ Conky для выделения заметок, в противном случа
 
 Пример конфигурационного файла (знак = не должен быть отделен пробелами):
 CURRENT_DATE_COLOR=green
-FLOW_MODE=1
 OVERALL_WIDTH=60
 TAG_FIELD_WIDTH=8
 
