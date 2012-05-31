@@ -91,6 +91,7 @@ function cal_for_month()
 START_DATE=now
 if [[ -n "$1" ]]; then
 	START_DATE=`plan_parse_date "$1"`
+	START_DATE=`date -d "$START_DATE" +"%m/01/%Y"`
 fi
 
 COUNT=0
