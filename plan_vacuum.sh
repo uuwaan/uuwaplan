@@ -9,8 +9,13 @@ if [[ -a "$DB_FILE" ]]; then
 	rm -f "$DB_FILE"
 fi
 
-plan_read_lines | plan_filter_by_date $TIME_NOW $TIME_END | while read LINE; do
+CONVEYER="plan_read_lines | plan_filter_by_date $TIME_NOW $TIME_END"
+eval "$CONVEYER" | while read LINE; do
 	echo $LINE >> "$DB_FILE"
 done
 
-mv "$DB_FILE" "$PLAN_DATABASE"
+if [[ -a "$DB_FILE" ]]; then
+	mv "$DB_FILE" "$PLAN_DATABASE"
+else
+	echo -n >"$PLAN_DATABASE"
+fi
